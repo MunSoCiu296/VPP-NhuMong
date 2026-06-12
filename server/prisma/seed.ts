@@ -36,6 +36,13 @@ const testimonials = [
 ];
 
 async function main() {
+  // Chỉ seed khi database rỗng — tránh xóa data khi redeploy
+  const existingUsers = await prisma.user.count();
+  if (existingUsers > 0) {
+    console.log('Database already has data, skipping seed.');
+    return;
+  }
+
   await prisma.orderItem.deleteMany();
   await prisma.order.deleteMany();
   await prisma.review.deleteMany();
