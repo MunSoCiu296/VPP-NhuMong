@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { useRef } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import Reveal from '../components/Reveal';
 import ServiceCard from '../components/ServiceCard';
 import ProductCard from '../components/ProductCard';
@@ -8,7 +8,7 @@ import BrandCarousel from '../components/BrandCarousel';
 import TestimonialCarousel from '../components/TestimonialCarousel';
 import FAQAccordion from '../components/FAQAccordion';
 import { homeServices } from '../data/services';
-import { products } from '../data/products';
+import { api, type DbProduct } from '../lib/api';
 import { stats, benefits, testimonials, faqs, galleryImages } from '../data/content';
 import { STORE, HERO_SERVICES } from '../utils/constants';
 
@@ -16,6 +16,16 @@ export default function Home() {
   const heroRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
   const y = useTransform(scrollYProgress, [0, 1], [0, 150]);
+
+  const [featuredProducts, setFeaturedProducts] = useState<DbProduct[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
+
+  useEffect(() => {
+    api.products
+      .list()
+      .then((data) => setFeaturedProducts(data.slice(0, 6)))
+      .finally(() => setProductsLoading(false));
+  }, []);
 
   return (
     <>
@@ -166,15 +176,32 @@ export default function Home() {
               Xem tất cả →
             </Link>
           </div>
-          <div className="flex gap-6 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide">
-            {products.slice(0, 6).map((p, i) => (
-              <div key={p.id} className="flex-shrink-0 w-64 snap-start">
-                <Reveal delay={i * 0.05}>
-                  <ProductCard product={p} />
-                </Reveal>
-              </div>
-            ))}
-          </div>
+          {productsLoading ? (
+            <div className="flex gap-6 overflow-x-auto pb-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="flex-shrink-0 w-64 skeleton h-72 rounded-2xl" />
+              ))}
+            </div>
+          ) : (
+            <div className="flex gap-6 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide">
+              {featuredProducts.map((p, i) => (
+                <div key={p.id} className="flex-shrink-0 w-64 snap-start">
+                  <Reveal delay={i * 0.05}>
+                    <ProductCard product={{
+                      id: p.id,
+                      name: p.name,
+                      category: p.category,
+                      brand: p.brand,
+                      price: p.price,
+                      image: p.image,
+                      badge: (p.badge as 'hot' | 'sale' | undefined) ?? undefined,
+                      salePercent: p.salePercent ?? undefined,
+                    }} />
+                  </Reveal>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
